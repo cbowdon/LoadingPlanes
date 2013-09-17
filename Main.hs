@@ -23,7 +23,7 @@ target = Node 3 8
 
 -- | The natural L-shaped path that would be taken if no obstructions were present.
 lPath :: [Node]
-lPath = [Node 0 0, Node 1 0, Node 2 0, Node 3 0, Node 3 1, Node 3 2, Node 3 3, Node 3 4, Node 3 5, Node 3 6, Node 3 7, Node 3 8]
+lPath = [Node 0 0, Node 0 1, Node 0 2, Node 0 3, Node 0 4, Node 0 5, Node 0 6, Node 0 7, Node 0 8, Node 1 8, Node 2 8, Node 3 8]
 
 -- | A set of obstructions.
 occupiedNodes :: Set.Set Node
@@ -53,11 +53,28 @@ main = do
     print c
 
 -- | Finds a minimum path around the obstructions from src to dest.
+--
+-- (1) Make a graph of nodes and weights.
+--
+-- (2) Starting from src, step onto adjacent node in graph with lowest weight.
+--
+-- (3) Repeat until destination reached.
 minPath :: Set.Set Node     -- ^ Set of obstructed nodes
         -> Node             -- ^ Source node
         -> Node             -- ^ Destination node
         -> [Node]           -- ^ Minimum path
-minPath _ _ _ = []
+minPath obstructed src dest =
+    let graph = makeGraph obstructed src dest
+        rec s o
+            | s == dest = reverse (s:o)
+            | otherwise = rec (foldl minWeight (head $ f s) (f s)) (s:o)
+        f s = filter (`Map.member` graph) $ adjacent s
+        minWeight b a = let b' = graph Map.! b
+                            a' = graph Map.! a
+                        in  if b' <= a' then b else a
+    in rec src []
+-- TODO error handling
+
 
 -- | Predicate for whether a node is in the 10x10 world or not.
 inWorld :: Node -> Bool
@@ -77,7 +94,7 @@ inWorld (Node x y)
 --
 --  (4) For each of the adjacent nodes, add to graph with weight 1 greater than the processed node, unless it is already in the graph with a lower weight.
 --
---  (5) Add each adjacent node that was add to the graph to the list of nodes to process.
+--  (5) Add each adjacent node that was added to the graph to the list of nodes to process.
 --
 --  (6) Continue until one of the adjacent nodes is target.
 makeGraph   :: Set.Set Node         -- ^ Set of obstructed nodes
