@@ -1,9 +1,6 @@
-{- |
-Loading Planes Simulation
-
-The great quest to master Haskell/tackle interesting problems continues. I vaguely remember seeing a news article about simulations showing the most efficient way to load passengers onto a plane. As I recall, letting people on at random is least efficient, loading back-to-front somewhat efficient and loading windows-to-aisles most efficient. This project is a recreation of that simulation. The passengers will step in turn towards their seat and time will be the total number of steps required.
-
--}
+-- | Loading Planes Simulation
+--
+-- The great quest to master Haskell/tackle interesting problems continues. I vaguely remember seeing a news article about simulations showing the most efficient way to load passengers onto a plane. As I recall, letting people on at random is least efficient, loading back-to-front somewhat efficient and loading windows-to-aisles most efficient. This project is a recreation of that simulation. The passengers will step in turn towards their seat and time will be the total number of steps required.
 module Main where
 
 import Data.Word (Word)
@@ -14,6 +11,8 @@ import Test.HUnit hiding (Node, path)
 -- * Types
 -- | An (x,y) point that can be occupied.
 data Node = Node Word Word deriving (Eq, Ord, Show)
+
+type Weight = Word
 
 -- * Test constants
 origin :: Node
@@ -36,18 +35,29 @@ mPath = [Node 0 0, Node 0 1, Node 0 2, Node 0 3, Node 0 4, Node 0 5, Node 1 5, N
 
 -- * Tests
 tests :: Test
-tests = test [  TestCase (assertEqual "Simple path" lPath (minPath Set.empty origin target)),
-                TestCase (assertEqual "Simple path" mPath (minPath occupiedNodes origin target)) ]
+tests = test [  TestCase (assertEqual "Adjacent" [Node 0 1, Node 0 3, Node 1 2] (adjacent $ Node 0 2)),
+                TestCase (assertBool "Node clear" (nodeClear Set.empty target)),
+                TestCase (assertBool "Node not clear" (not $ nodeClear (Set.fromList [target]) target)),
+                TestCase (assertEqual "Insert if better" (Map.singleton target 0) (insertIfBetter target 0 Map.empty)),
+                TestCase (assertEqual "Insert if better" (Map.singleton target 0) (insertIfBetter target 0 (Map.singleton target 1))),
+                TestCase (assertEqual "Insert not better" (Map.singleton target 0) (insertIfBetter target 1 (Map.singleton target 0))),
+                TestCase (assertEqual "Simple path" lPath (minPath Set.empty origin target)),
+                TestCase (assertEqual "Complex path" mPath (minPath occupiedNodes origin target)),
+                TestCase (assertBool "All squares" $ 100 > Map.size (makeGraph Set.empty origin target)) ]
+
 -- * Functions
 main :: IO ()
-main = print "Hello world"
+main = do
+    c <- runTestTT tests
+    print $ makeGraph Set.empty origin target
+    print c
 
 -- | Finds a minimum path around the obstructions from src to dest.
 minPath :: Set.Set Node     -- ^ Set of obstructed nodes
         -> Node             -- ^ Source node
         -> Node             -- ^ Destination node
         -> [Node]           -- ^ Minimum path
-minPath = undefined
+minPath _ _ _ = []
 
 -- | Predicate for whether a node is in the 10x10 world or not.
 inWorld :: Node -> Bool
@@ -57,11 +67,57 @@ inWorld (Node x y)
     | otherwise = True
 
 -- | Make graph of nodes connecting src to dest, with weights corresponding to distance from dest.
+-- Algorithm is as follows:
+--
+--  (1) Start with a list of nodes to process, containing just dest.
+--
+--  (2) Add dest to the graph with a weight of 0.
+--
+--  (3) For each node to process, find unobstructed adjacent nodes.
+--
+--  (4) For each of the adjacent nodes, add to graph with weight 1 greater than the processed node, unless it is already in the graph with a lower weight.
+--
+--  (5) Add each adjacent node that was add to the graph to the list of nodes to process.
+--
+--  (6) Continue until one of the adjacent nodes is target.
 makeGraph   :: Set.Set Node         -- ^ Set of obstructed nodes
             -> Node                 -- ^ Source node
             -> Node                 -- ^ Destination node
-            -> Map.Map Node Word    -- ^ Weighted graph of nodes
-makeGraph = undefined
+            -> Map.Map Node Weight  -- ^ Weighted graph of nodes
+makeGraph obstructed src dest = rec [dest] (Map.singleton dest 0)
+    where
+        rec [] m        = m
+        rec (x:xs) m
+                | x == src  = m
+                | otherwise = rec (xs ++ adjs) (foldl addm m adjs)
+            -- TODO ugly nested where, ugly guard
+            where
+                -- TODO unnecessary (?) extra lookup with insertIfBetter
+                w = (m Map.! x) + 1
+                adjs = filter (\n -> nodeClear obstructed n && newOrBetter n w m) $ adjacent x
+                addm b a = insertIfBetter a w b
+
+-- | Insert (node,weight) into map only if node is not in map or weight is lower than existing.
+insertIfBetter :: Node -> Weight -> Map.Map Node Weight -> Map.Map Node Weight
+insertIfBetter k a m =
+    case Map.lookup k m of
+        Nothing -> Map.insert k a m
+        Just a' -> if a < a' then Map.insert k a m else m
+
+-- | Is this weight lower than any in the graph so far for this node?
+newOrBetter :: Node -> Weight -> Map.Map Node Weight -> Bool
+newOrBetter k a m =
+    case Map.lookup k m of
+        Nothing -> True
+        Just a' -> a < a'
+
+-- | Is the node in the set of obstructions?
+nodeClear :: Set.Set Node -> Node -> Bool
+nodeClear obstructed node = not $ Set.member node obstructed
+
+-- | The adjacent nodes (up to 4).
+adjacent :: Node -> [Node]
+adjacent (Node x y) = filter inWorld [Node x (y-1), Node x (y+1), Node (x-1) y, Node (x+1) y]
 
 {-
 -- walk by moving to adjacent cell with lowest count

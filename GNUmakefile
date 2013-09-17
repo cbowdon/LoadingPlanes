@@ -1,5 +1,6 @@
 SOURCES=Main.hs
 EXE=bin/LoadingPlanes
+DOCS=doc/
 
 all: compile doc lint
 
@@ -9,11 +10,11 @@ compile: $(SOURCES)
 run: all
 	$(EXE)
 
-lint:
+lint: $(SOURCES)
 	hlint $(SOURCES)
 
-doc:
-	haddock -h $(SOURCES)
+doc: $(SOURCES)
+	haddock -h $(SOURCES) -o $(DOCS)
 
 clean:
 	rm -f bin/*.hi bin/*.o $(EXE)
