@@ -12,12 +12,18 @@ import Test.HUnit hiding (Node, path)
 -- | An (x,y) point that can be occupied.
 data Node = Node Word Word deriving (Eq, Ord, Show)
 
+-- | Weight of a node in the graph (distance from dest).
 type Weight = Word
 
+-- | Graph of weighted nodes.
+type Graph = Map.Map Node Weight
+
 -- * Test constants
+-- | Origin node (0,0).
 origin :: Node
 origin = Node 0 0
 
+-- | Arbitrary target node (3,8).
 target :: Node
 target = Node 3 8
 
@@ -29,27 +35,33 @@ lPath = [Node 0 0, Node 0 1, Node 0 2, Node 0 3, Node 0 4, Node 0 5, Node 0 6, N
 occupiedNodes :: Set.Set Node
 occupiedNodes = Set.fromList [Node 0 7, Node 1 0, Node 1 1, Node 1 2, Node 1 3, Node 1 4, Node 1 7, Node 2 6]
 
+-- | A blocking set of obstructions
+wallOfNodes :: Set.Set Node
+wallOfNodes = Set.fromList $ map (Node 2) [0..9]
+
 -- | The optimal path around the obstructions.
 mPath :: [Node]
 mPath = [Node 0 0, Node 0 1, Node 0 2, Node 0 3, Node 0 4, Node 0 5, Node 1 5, Node 2 5, Node 3 5, Node 3 6, Node 3 7, Node 3 8]
 
 -- * Tests
+-- | Simple unit tests
 tests :: Test
 tests = test [  TestCase (assertEqual "Adjacent" [Node 0 1, Node 0 3, Node 1 2] (adjacent $ Node 0 2)),
                 TestCase (assertBool "Node clear" (nodeClear Set.empty target)),
                 TestCase (assertBool "Node not clear" (not $ nodeClear (Set.fromList [target]) target)),
-                TestCase (assertEqual "Insert if better" (Map.singleton target 0) (insertIfBetter target 0 Map.empty)),
-                TestCase (assertEqual "Insert if better" (Map.singleton target 0) (insertIfBetter target 0 (Map.singleton target 1))),
-                TestCase (assertEqual "Insert not better" (Map.singleton target 0) (insertIfBetter target 1 (Map.singleton target 0))),
-                TestCase (assertEqual "Simple path" lPath (minPath Set.empty origin target)),
-                TestCase (assertEqual "Complex path" mPath (minPath occupiedNodes origin target)),
+                TestCase (assertEqual "Trivial path" (Just [origin]) (minPath occupiedNodes origin origin)),
+                TestCase (assertEqual "Simple path" (Just lPath) (minPath Set.empty origin target)),
+                TestCase (assertEqual "Complex path" (Just mPath) (minPath occupiedNodes origin target)),
+                TestCase (assertEqual "Impossible path" Nothing (minPath wallOfNodes origin target)),
                 TestCase (assertBool "All squares" $ 100 > Map.size (makeGraph Set.empty origin target)) ]
 
 -- * Functions
+-- | Run and print tests.
 main :: IO ()
 main = do
     c <- runTestTT tests
     print $ makeGraph Set.empty origin target
+    print $ minPath occupiedNodes origin target
     print c
 
 -- | Finds a minimum path around the obstructions from src to dest.
@@ -62,19 +74,30 @@ main = do
 minPath :: Set.Set Node     -- ^ Set of obstructed nodes
         -> Node             -- ^ Source node
         -> Node             -- ^ Destination node
-        -> [Node]           -- ^ Minimum path
-minPath obstructed src dest =
-    let graph = makeGraph obstructed src dest
-        rec s o
-            | s == dest = reverse (s:o)
-            | otherwise = rec (foldl minWeight (head $ f s) (f s)) (s:o)
-        f s = filter (`Map.member` graph) $ adjacent s
-        minWeight b a = let b' = graph Map.! b
-                            a' = graph Map.! a
-                        in  if b' <= a' then b else a
-    in rec src []
--- TODO error handling
+        -> Maybe [Node]     -- ^ Minimum path if exists
+minPath obstructed src dest = rec (Just src) []
+    where
+        graph = makeGraph obstructed src dest
+        rec ms o = ms >>= \s ->
+            if s == dest
+            then Just $ reverse (s:o)
+            else rec (nextNode graph s) (s:o)
 
+-- | Select the node with the lower weight from the graph.
+lowerWeight :: Graph -> Node -> Node -> Node
+lowerWeight graph b a =
+        let b' = graph Map.! b
+            a' = graph Map.! a
+        in  if b' <= a' then b else a
+
+-- | Calculate next node in graph to move to.
+nextNode :: Graph -> Node -> Maybe Node
+nextNode graph node =
+    let possibles = filter (`Map.member` graph) $ adjacent node
+    in case possibles of
+        []      -> Nothing
+        [n]     -> Just n
+        (n:ns)  -> Just $ foldl (lowerWeight graph) n ns
 
 -- | Predicate for whether a node is in the 10x10 world or not.
 inWorld :: Node -> Bool
@@ -97,10 +120,10 @@ inWorld (Node x y)
 --  (5) Add each adjacent node that was added to the graph to the list of nodes to process.
 --
 --  (6) Continue until one of the adjacent nodes is target.
-makeGraph   :: Set.Set Node         -- ^ Set of obstructed nodes
-            -> Node                 -- ^ Source node
-            -> Node                 -- ^ Destination node
-            -> Map.Map Node Weight  -- ^ Weighted graph of nodes
+makeGraph   :: Set.Set Node -- ^ Set of obstructed nodes
+            -> Node         -- ^ Source node
+            -> Node         -- ^ Destination node
+            -> Graph        -- ^ Weighted graph of nodes
 makeGraph obstructed src dest = rec [dest] (Map.singleton dest 0)
     where
         rec [] m        = m
@@ -109,20 +132,21 @@ makeGraph obstructed src dest = rec [dest] (Map.singleton dest 0)
                 | otherwise = rec (xs ++ adjs) (foldl addm m adjs)
             -- TODO ugly nested where, ugly guard
             where
-                -- TODO unnecessary (?) extra lookup with insertIfBetter
-                w = (m Map.! x) + 1
-                adjs = filter (\n -> nodeClear obstructed n && newOrBetter n w m) $ adjacent x
-                addm b a = insertIfBetter a w b
+                (adjs, w) = graphable obstructed m x
+                addm m' a = Map.insert a w m'
 
--- | Insert (node,weight) into map only if node is not in map or weight is lower than existing.
-insertIfBetter :: Node -> Weight -> Map.Map Node Weight -> Map.Map Node Weight
-insertIfBetter k a m =
-    case Map.lookup k m of
-        Nothing -> Map.insert k a m
-        Just a' -> if a < a' then Map.insert k a m else m
+-- | Get permissible adjacent nodes.
+graphable   :: Set.Set Node     -- ^ Obstructed nodes
+            -> Graph            -- ^ Graph-so-far
+            -> Node             -- ^ Node in question
+            -> ([Node], Weight) -- ^ Adjacent nodes and their weight
+graphable obstructed graph node =
+    let w   = (graph Map.! node) + 1
+        adj = filter (\n -> nodeClear obstructed n && newOrBetter n w graph) $ adjacent node
+    in  (adj, w)
 
 -- | Is this weight lower than any in the graph so far for this node?
-newOrBetter :: Node -> Weight -> Map.Map Node Weight -> Bool
+newOrBetter :: Node -> Weight -> Graph -> Bool
 newOrBetter k a m =
     case Map.lookup k m of
         Nothing -> True
@@ -135,54 +159,3 @@ nodeClear obstructed node = not $ Set.member node obstructed
 -- | The adjacent nodes (up to 4).
 adjacent :: Node -> [Node]
 adjacent (Node x y) = filter inWorld [Node x (y-1), Node x (y+1), Node (x-1) y, Node (x+1) y]
-
-{-
--- walk by moving to adjacent cell with lowest count
-minPath :: Node -> Node -> [Node]
-minPath src dest =
-    let paths = findPaths src dest
-    in  rec' src dest paths [src]
-
-rec' :: Node -> Node -> [Node] -> [Node] -> [Node]
-rec' curr dest paths output =
-    let next = minimum $ canStep curr paths output
-        newOutput = next:output
-    in if next == dest then reverse newOutput else rec' next dest paths newOutput
-
-canStep :: Node -> [Node] -> [Node] -> [Node]
-canStep curr paths output = filter (\n -> (n `elem` paths) && (n `notElem` output)) (adjacentInSet paths curr)
-
-adjacentInSet :: [Node] -> Node -> [Node]
-adjacentInSet set node = filter (`elem` adjacent node) set
-
-nodeClear :: Node -> Bool
-nodeClear (Node x y _)
-    | x < 0     = False
-    | y < 0     = False
-    | x > 9     = False
-    | y > 9     = False
-    | otherwise = True
-
-adjacent :: Node -> [Node]
-adjacent (Node x y)  = filter nodeClear [Node (x-1) y, Node (x+1) y, Node x (y-1), Node x (y+1)]
-
-findPaths :: Node -> Node -> [Node]
-findPaths src dest = rec src [dest] []
-
--- for each point in original list
--- calc allowable adjacent nodes and inc
--- add to original list
--- until src is hit
-rec :: Node -> [Node] -> [Node] -> [Node]
-rec src input output =
-    case input of
-        []      -> output
-        (x:xs)  -> if x == src then x:output else rec src (xs ++ filter (unexplored (xs ++ output)) (adjacent x)) (x:output)
--- TODO why the fuck are we using lists here? Sounds like it's begging for a tree.
-
-unexplored :: [Node] -> Node -> Bool
-unexplored explored that = foldl (\b a -> b && diffOrBetter that a) True explored
-
-diffOrBetter :: Node -> Node -> Bool
-diffOrBetter (Node x y n) (Node x' y' n') = x /= x' || y /= y' || x == x' && y == y' && n < n'
--}
