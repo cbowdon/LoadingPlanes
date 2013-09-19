@@ -1,4 +1,4 @@
--- | Simple path-finding functionality.
+-- | Simple path-finding functionality using Dijkstra's algorithm.
 module Path
 ( -- * Types
   Node(..)

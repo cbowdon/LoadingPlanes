@@ -4,7 +4,7 @@
 module Main where
 
 import Test.HUnit (runTestTT)
-import Path.Tests
+import Tests.Path
 
 -- * Functions
 -- | Run and print tests.

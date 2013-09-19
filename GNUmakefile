@@ -1,4 +1,4 @@
-SOURCES=*.hs Path/*.hs
+SOURCES=*.hs Tests/*.hs
 EXE=bin/LoadingPlanes
 DOCS=doc/
 
