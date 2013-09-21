@@ -12,16 +12,15 @@ module Path
 , nodeClear
 ) where
 
-import Data.Word (Word)
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 
 -- * Types
 -- | An (x,y) point that can be occupied.
-data Node = Node Word Word deriving (Eq, Ord, Show)
+data Node = Node Int Int deriving (Eq, Ord, Show)
 
 -- | Weight of a node in the graph (distance from dest).
-type Weight = Word
+type Weight = Int
 
 -- | Graph of weighted nodes.
 type Graph = Map.Map Node Weight
@@ -67,8 +66,10 @@ nextNode graph node =
 -- | Predicate for whether a node is in the 10x10 world or not.
 inWorld :: Node -> Bool
 inWorld (Node x y)
-    | x > 9     = False
-    | y > 9     = False
+    | x < 0     = False
+    | y < 0     = False
+    | x > 99    = False
+    | y > 99    = False
     | otherwise = True
 
 -- | Make graph of nodes connecting src to dest, with weights corresponding to distance from dest.

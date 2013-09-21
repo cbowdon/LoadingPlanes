@@ -16,13 +16,16 @@ import Graphics.Rendering.OpenGL
 -- | A visualizable (with OpenGL) type
 class Vis a where
     visualize :: a -> IO ()
+    -- TODO
+    -- rgb :: a -> Color3
+    -- shape :: a -> [Vertex2]
 
 -- | Set visualization color
 rgbColor :: GLfloat -> GLfloat -> GLfloat -> IO ()
 rgbColor r g b = color $ Color3 r g b
 
 vertex2d :: GLfloat -> GLfloat -> IO ()
-vertex2d x y = vertex $ Vertex3 x y 0
+vertex2d x y = vertex $ Vertex2 x y
 
 -- | Render visualizable as quads
 render :: Vis a => a -> IO ()

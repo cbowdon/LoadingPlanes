@@ -4,12 +4,16 @@ module Plane
 carriage
 , walls
 , seats
+, start
 -- * Types
 , Blocks(..)
 , Seats(..)
 , Walls(..)
+-- * Functions
+, findSeat
 ) where
 
+import Data.Char
 import qualified Data.Set as Set
 import Path
 import Visualization
@@ -37,13 +41,26 @@ instance Vis Seats where
 instance Vis Node where
     visualize (Node x y) = unitRect $ scale2d (x,y)
 
+start :: Node
+start = Node 1 4
+
+findSeat :: Char -> Int -> Node
+findSeat c n = Node (n * 2 - 1) y
+    where
+        y = case c of
+            'A' -> 1
+            'B' -> 2
+            'C' -> 3
+            'D' -> 5
+            _   -> 6
+
 -- | The nodes occupied by parts of the plane
 carriage :: Blocks
 carriage = Blocks $ Set.unions [getSeats seats, getWalls walls]
 
 -- | Walls of the plane
 walls :: Walls
-walls = Walls $ Set.fromList $ [Node x y | x <- [0..41], y <- [0,7]] ++ [Node x y | x <- [0,42], y <- [0..7]]
+walls = Walls $ Set.fromList $ [Node x y | x <- [0..41], y <- [0,7]] ++ [Node x y | x <- [0,41], y <- [0..7]]
 
 -- | Seats
 seats :: Seats

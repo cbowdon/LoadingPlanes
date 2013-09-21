@@ -28,4 +28,22 @@ display = do
     clear [ColorBuffer]
     render walls
     render seats
+    let s = findSeat 'E' 16
+    let p = Passenger False start s
+    let p' = minPath (blocks carriage) start s
+    render p
+    renderPrimitive Quads $ visSeat s
+    renderPrimitive Quads $ visPath p'
     flush
+
+visSeat :: Node -> IO ()
+visSeat n = do
+        rgbColor 0 1 0
+        visualize n
+
+visPath :: Maybe Path -> IO ()
+visPath p = case p of
+    Nothing -> print "Can't find path!"
+    Just p' -> do
+        rgbColor 0.9 0.5 0.1
+        mapM_ visualize p'
