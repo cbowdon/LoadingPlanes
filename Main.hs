@@ -9,6 +9,7 @@ import Test.HUnit (runTestTT)
 import Tests.Path
 import Path
 import Passenger
+import Plane
 import Visualization
 
 -- * Functions
@@ -25,5 +26,6 @@ main = do
 display :: IO ()
 display = do
     clear [ColorBuffer]
-    render $ Passenger False (Node 0 0) (Node 1 1)
+    render walls
+    render seats
     flush
