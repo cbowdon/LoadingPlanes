@@ -11,6 +11,7 @@ import Path
 import Passenger
 import Plane
 import Visualization
+import WorldState
 
 -- * Functions
 -- | Run and print tests.

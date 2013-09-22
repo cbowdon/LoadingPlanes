@@ -1,9 +1,11 @@
 -- | Updating the state of the world
 module WorldState
-( step
-, clear
+( PlaneState
+, step
+, step'
 ) where
 
+import Control.Monad.State
 import qualified Data.Set as Set
 import Path
 import Passenger
@@ -11,6 +13,8 @@ import Plane
 
 -- TODO efficient queue impl
 type Queue = [Passenger]
+
+type PlaneState a = StateT Queue Maybe a
 
 -- | Take 1 step (for 1 passenger)
 --
@@ -28,6 +32,14 @@ step obs (p:ps) =
     else nextStep obs p >>= Just . update obs ps p
 step _ _ = Nothing
 
+step' :: Blocks -> PlaneState Blocks
+step' obs = StateT $ \q ->
+    case q of
+    []      -> Nothing
+    (p:ps)  ->  if seated p
+                then Just (obs,ps)
+                else nextStep obs p >>= Just . update obs ps p
+
 nextStep :: Blocks -> Passenger -> Maybe Node
 nextStep obs p =
     let next = move (location p) (seat p)
@@ -39,7 +51,10 @@ nextStep obs p =
 move :: Node -> Node -> Node
 move (Node x y) (Node x' y') = Node (inc x x') (inc y y')
     where
-        inc k k' = if k' < k then k' + 1 else k
+        inc k k'
+            | k < k'    = k + 1
+            | k > k'    = k - 1
+            | otherwise = k
 
 clear :: Blocks -> Node -> Bool
 clear = flip Set.notMember
