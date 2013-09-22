@@ -28,9 +28,9 @@ display = do
     clear [ColorBuffer]
     render walls
     render seats
-    let s = findSeat 'E' 16
-    let p = Passenger False start s
-    let p' = minPath (blocks carriage) start s
+    let s = seatRef 'E' 16
+    let p = newPassenger { onboard = True, seat = s }
+    let p' = minPath carriage start s
     render p
     renderPrimitive Quads $ visSeat s
     renderPrimitive Quads $ visPath p'

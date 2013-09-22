@@ -6,20 +6,19 @@ carriage
 , seats
 , start
 -- * Types
-, Blocks(..)
+, Blocks
 , Seats(..)
 , Walls(..)
 -- * Functions
-, findSeat
+, seatRef
 ) where
 
-import Data.Char
 import qualified Data.Set as Set
 import Path
 import Visualization
 
 -- | Set of nodes occupied by parts of the plane
-newtype Blocks = Blocks { blocks :: Set.Set Node }
+type Blocks = Set.Set Node
 -- TODO types organization
 
 -- | Set of nodes occupied by the seats themselves
@@ -41,11 +40,13 @@ instance Vis Seats where
 instance Vis Node where
     visualize (Node x y) = unitRect $ scale2d (x,y)
 
+-- | Default starting node
 start :: Node
 start = Node 1 4
 
-findSeat :: Char -> Int -> Node
-findSeat c n = Node (n * 2 - 1) y
+-- | Convert a seat reference to a node
+seatRef :: Char -> Int -> Node
+seatRef c n = Node (n * 2 - 1) y
     where
         y = case c of
             'A' -> 1
@@ -56,7 +57,7 @@ findSeat c n = Node (n * 2 - 1) y
 
 -- | The nodes occupied by parts of the plane
 carriage :: Blocks
-carriage = Blocks $ Set.unions [getSeats seats, getWalls walls]
+carriage = Set.unions [getSeats seats, getWalls walls]
 
 -- | Walls of the plane
 walls :: Walls
