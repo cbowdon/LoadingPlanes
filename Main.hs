@@ -6,7 +6,8 @@ module Main where
 import Graphics.Rendering.OpenGL
 import Graphics.UI.GLUT
 import Test.HUnit (runTestTT)
-import Tests.Path
+import qualified Tests.Path
+import qualified Tests.WorldState
 import Path
 import Passenger
 import Plane
@@ -17,8 +18,10 @@ import WorldState
 -- | Run and print tests.
 main :: IO ()
 main = do
-    c <- runTestTT tests
-    print c
+    print "Path:"
+    _ <- runTestTT Tests.Path.tests
+    print "WorldState:"
+    _' <- runTestTT Tests.WorldState.tests
     _ <- getArgsAndInitialize
     _ <- createWindow "Hello, world"
     displayCallback $= display

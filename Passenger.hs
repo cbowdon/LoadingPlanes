@@ -15,7 +15,7 @@ data Passenger = Passenger {
     onboard :: Bool,
     location :: Node,
     seat :: Node
-} deriving Show
+} deriving (Show, Eq)
 
 -- | Default uninitialized passenger
 newPassenger :: Passenger

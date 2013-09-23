@@ -1,20 +1,27 @@
 -- | Updating the state of the world
 module WorldState
 ( PlaneState
+, Queue
+, queueFromList
 , step
-, step'
 ) where
 
 import Control.Monad.State
 import qualified Data.Set as Set
+import Data.Sequence (Seq, ViewL(..), (|>), viewl, fromList)
 import Path
 import Passenger
 import Plane
 
--- TODO efficient queue impl
-type Queue = [Passenger]
+-- | Passenger processing queue (i.e. whose turn to step)
+type Queue = Seq Passenger
 
+-- | Describes the state of the plane (passenger locations)
 type PlaneState a = StateT Queue Maybe a
+
+-- | Convenient constructor function for queues
+queueFromList :: [Passenger] -> Queue
+queueFromList = fromList
 
 -- | Take 1 step (for 1 passenger)
 --
@@ -24,21 +31,20 @@ type PlaneState a = StateT Queue Maybe a
 --
 -- (3) Remove p's old node from obs and add new node.
 --
--- (4) If no step possible, nothing.
-step :: Blocks -> Queue -> Maybe (Blocks, Queue)
-step obs (p:ps) =
-    if seated p
-    then Just (obs,ps)
-    else nextStep obs p >>= Just . update obs ps p
-step _ _ = Nothing
-
-step' :: Blocks -> PlaneState Blocks
-step' obs = StateT $ \q ->
-    case q of
-    []      -> Nothing
-    (p:ps)  ->  if seated p
-                then Just (obs,ps)
-                else nextStep obs p >>= Just . update obs ps p
+-- (4) If no step possible, nothing: as soon as one person is unable to step, gridlock!
+--
+-- Usage examples:
+--
+-- runStateT (step carriage) [newPassenger]
+--
+-- runStateT (head $ drop 2 $ iterate (>>=step) $ zeroStep carriage) [newPassenger]
+step :: Blocks -> PlaneState Blocks
+step obs = StateT $ \q ->
+    case viewl q of
+    (p :< ps)   ->  if seated p
+                    then Just (obs,ps)
+                    else nextStep obs p >>= Just . update obs ps p
+    _           -> Nothing
 
 nextStep :: Blocks -> Passenger -> Maybe Node
 nextStep obs p =
@@ -61,6 +67,6 @@ clear = flip Set.notMember
 
 update :: Blocks -> Queue -> Passenger -> Node -> (Blocks, Queue)
 update obs ps p next =
-    let p' = ps ++ [p { location = next }]
-        o' = Set.delete (seat p) . Set.insert next $ obs
+    let p' = ps |> p { location = next }
+        o' = Set.insert next . Set.delete (location p) $ obs
     in  (o', p')
