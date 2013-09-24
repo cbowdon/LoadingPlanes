@@ -1,20 +1,17 @@
 SOURCES=*.hs Tests/*.hs
-EXE=bin/LoadingPlanes
-DOCS=doc/
+EXE=LoadingPlanes
+DIST=dist
 
-all: compile doc lint
+all: compile lint
 
 compile: $(SOURCES)
-	ghc --make -Wall $^ -outputdir bin -o $(EXE)
+	cabal install --haddock-executables
 
-run: all
+run: compile
 	$(EXE)
 
 lint: $(SOURCES)
 	hlint $(SOURCES)
 
-doc: $(SOURCES)
-	haddock -h $(SOURCES) -o $(DOCS)
-
 clean:
-	rm -f bin/*.hi bin/*.o $(EXE)
+	rm -rf $(DIST)

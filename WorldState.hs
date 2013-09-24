@@ -4,6 +4,7 @@ module WorldState
 , Queue
 , queueFromList
 , step
+, nSteps
 ) where
 
 import Control.Monad.State
@@ -32,12 +33,6 @@ queueFromList = fromList
 -- (3) Remove p's old node from obs and add new node.
 --
 -- (4) If no step possible, nothing: as soon as one person is unable to step, gridlock!
---
--- Usage examples:
---
--- runStateT (step carriage) [newPassenger]
---
--- runStateT (head $ drop 2 $ iterate (>>=step) $ zeroStep carriage) [newPassenger]
 step :: Blocks -> PlaneState Blocks
 step obs = StateT $ \q ->
     case viewl q of
@@ -46,16 +41,19 @@ step obs = StateT $ \q ->
                     else nextStep obs p >>= Just . update obs ps p
     _           -> Nothing
 
+-- | Apply n steps to state s
+nSteps :: Int -> PlaneState Blocks -> PlaneState Blocks
+nSteps n s = iterate (>>=step) s !! n
+
 nextStep :: Blocks -> Passenger -> Maybe Node
 nextStep obs p =
-    let next = move (location p) (seat p)
+    let next = findNext (location p) (seat p)
     in if clear obs next
     then Just next
     else Nothing
 
--- TODO change y logic
-move :: Node -> Node -> Node
-move (Node x y) (Node x' y') = Node (inc x x') (inc y y')
+findNext :: Node -> Node -> Node
+findNext (Node x y) (Node x' y') = Node (inc x x') (inc y y')
     where
         inc k k'
             | k < k'    = k + 1
