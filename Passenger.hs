@@ -4,6 +4,7 @@ module Passenger
 Passenger(..)
 , seated
 , newPassenger
+, makePassenger
 ) where
 
 import Path
@@ -20,6 +21,10 @@ data Passenger = Passenger {
 -- | Default uninitialized passenger
 newPassenger :: Passenger
 newPassenger = Passenger False start (seatRef 'A' 1)
+
+-- | Make a new passenger for given seat
+makePassenger :: Char -> Int -> Passenger
+makePassenger c n = newPassenger { seat = seatRef c n }
 
 -- | Is the passenger in his seat?
 seated :: Passenger -> Bool

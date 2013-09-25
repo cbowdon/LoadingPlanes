@@ -22,10 +22,13 @@ main = do
     _ <- runTestTT Tests.Path.tests
     print "WorldState:"
     _' <- runTestTT Tests.WorldState.tests
+    print "TODO - OpenGL"
+{-
     _ <- getArgsAndInitialize
     _ <- createWindow "Hello, world"
     displayCallback $= display
     mainLoop
+-}
 
 display :: IO ()
 display = do

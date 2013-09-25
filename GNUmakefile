@@ -5,7 +5,7 @@ DIST=dist
 all: compile lint
 
 compile: $(SOURCES)
-	cabal install --haddock-executables
+	cabal install --haddock-executables --disable-documentation
 
 run: compile
 	$(EXE)

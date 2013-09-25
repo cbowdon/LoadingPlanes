@@ -7,6 +7,7 @@ module WorldState
 , nSteps
 ) where
 
+import Control.Monad
 import Control.Monad.State
 import qualified Data.Set as Set
 import Data.Sequence (Seq, ViewL(..), (|>), viewl, fromList)
@@ -34,12 +35,14 @@ queueFromList = fromList
 --
 -- (4) If no step possible, nothing: as soon as one person is unable to step, gridlock!
 step :: Blocks -> PlaneState Blocks
-step obs = StateT $ \q ->
-    case viewl q of
-    (p :< ps)   ->  if seated p
-                    then Just (obs,ps)
-                    else nextStep obs p >>= Just . update obs ps p
-    _           -> Nothing
+step obs = StateT $ f . viewl
+    where
+        f (p :< ps)
+            | seated p = return (obs, ps)
+            | not (onboard p) && clear obs (location p) = return $ insert obs ps p
+            | not (onboard p) = return (obs, ps |> p)
+            | otherwise = liftM (update obs ps p) (nextStep obs p)
+        f _ = Nothing
 
 -- | Apply n steps to state s
 nSteps :: Int -> PlaneState Blocks -> PlaneState Blocks
@@ -68,3 +71,9 @@ update obs ps p next =
     let p' = ps |> p { location = next }
         o' = Set.insert next . Set.delete (location p) $ obs
     in  (o', p')
+
+insert :: Blocks -> Queue -> Passenger -> (Blocks, Queue)
+insert obs ps p =
+    let p' = ps |> p { onboard = True }
+        o' = Set.insert (location p) obs
+    in (o', p')
