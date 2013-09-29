@@ -5,12 +5,15 @@ Vis(..)
 -- * Functions
 , rgbColor
 , render
+, renderMany
 , worldSize
 , unitRect
 , toGLfloat
 , scale2d
 ) where
 
+import Prelude hiding (mapM_)
+import Data.Foldable (Foldable, mapM_)
 import Graphics.Rendering.OpenGL
 
 -- | A visualizable (with OpenGL) type
@@ -30,6 +33,9 @@ vertex2d x y = vertex $ Vertex2 x y
 -- | Render visualizable as quads
 render :: Vis a => a -> IO ()
 render a = renderPrimitive Quads $ visualize a
+
+renderMany :: (Vis a, Foldable b) => b a -> IO ()
+renderMany = renderPrimitive Quads . mapM_ visualize
 
 -- | Size of the simulation world
 worldSize :: (GLfloat, GLfloat)

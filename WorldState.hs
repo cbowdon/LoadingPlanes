@@ -38,7 +38,7 @@ step :: Blocks -> PlaneState Blocks
 step obs = StateT $ f . viewl
     where
         f (p :< ps)
-            | seated p = return (obs, ps)
+            | seated p = return (obs, ps |> p)
             | not (onboard p) && clear obs (location p) = return $ insert obs ps p
             | not (onboard p) = return (obs, ps |> p)
             | otherwise = liftM (update obs ps p) (nextStep obs p)
