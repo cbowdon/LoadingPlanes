@@ -38,7 +38,7 @@ step :: Blocks -> PlaneState Blocks
 step obs = StateT $ f . viewl
     where
         f (p :< ps)
-            | seated p = return (obs, ps |> p)
+            | seated p = return $ remove obs ps p
             | not (onboard p) && clear obs (location p) = return $ insert obs ps p
             | not (onboard p) = return (obs, ps |> p)
             | otherwise = liftM (update obs ps p) (nextStep obs p)
@@ -56,12 +56,11 @@ nextStep obs p =
     else Nothing
 
 findNext :: Node -> Node -> Node
-findNext (Node x y) (Node x' y') = Node (inc x x') (inc y y')
-    where
-        inc k k'
-            | k < k'    = k + 1
-            | k > k'    = k - 1
-            | otherwise = k
+findNext (Node x y) (Node x' y')
+    | x < x'    = Node (x + 1) y
+    | y < y'    = Node x (y + 1)
+    | y > y'    = Node x (y - 1)
+    | otherwise = Node x y
 
 update :: Blocks -> Queue -> Passenger -> Node -> (Blocks, Queue)
 update obs ps p next =
@@ -74,3 +73,9 @@ insert obs ps p =
     let p' = ps |> p { onboard = True }
         o' = obs { people = Set.insert (location p) $ people obs }
     in (o', p')
+
+remove :: Blocks -> Queue -> Passenger -> (Blocks, Queue)
+remove obs ps p =
+    let p' = ps |> p
+        o' = obs { people = Set.delete (location p) $ people obs }
+    in (o',p')

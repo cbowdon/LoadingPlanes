@@ -34,6 +34,7 @@ vertex2d x y = vertex $ Vertex2 x y
 render :: Vis a => a -> IO ()
 render a = renderPrimitive Quads $ visualize a
 
+-- | Render visualizable sequence as quads
 renderMany :: (Vis a, Foldable b) => b a -> IO ()
 renderMany = renderPrimitive Quads . mapM_ visualize
 

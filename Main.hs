@@ -16,9 +16,11 @@ import Plane hiding (clear)
 import Visualization
 import WorldState
 
+-- | Passengers, in order of boarding plane
 passengers :: Queue
-passengers = queueFromList [makePassenger a b | a <- ['A'..'E'], b <- [1]]
+passengers = queueFromList [makePassenger a b | a <- ['A'..'E'], b <- [1..20]]
 
+-- | Empty plane
 initialPlane :: PlaneState Blocks
 initialPlane = return carriage
 
@@ -37,18 +39,14 @@ main = do
     displayCallback $= display ps
     mainLoop
 
-userInput :: IORef Int -> KeyboardMouseCallback
-userInput n (Char ' ') Down _ _ = do
-    n $~! (+1)
-    postRedisplay Nothing
-userInput _ _ _ _ _ = return ()
-
+-- | Callback to update plane state
 updatePlane :: IORef (PlaneState Blocks) -> KeyboardMouseCallback
 updatePlane ips (Char ' ') Down _ _ = do
     ips $~! (>>=step)
     postRedisplay Nothing
 updatePlane _ _ _ _ _ = return ()
 
+-- | Callback to displace plane state
 display :: IORef (PlaneState Blocks) -> IO ()
 display ips = do
     clear [ColorBuffer]

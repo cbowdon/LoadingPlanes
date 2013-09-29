@@ -13,5 +13,8 @@ run: compile
 lint: $(SOURCES)
 	hlint $(SOURCES)
 
+doc: $(SOURCES)
+	cabal haddock --executables
+
 clean:
 	rm -rf $(DIST)
