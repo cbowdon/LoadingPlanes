@@ -2,15 +2,12 @@
 module Plane
 ( -- * Constants
 carriage
-, walls
-, seats
 , start
 -- * Types
-, Blocks
-, Seats(..)
-, Walls(..)
+, Blocks(..)
 -- * Functions
 , seatRef
+, clear
 ) where
 
 import qualified Data.Set as Set
@@ -18,24 +15,19 @@ import Path
 import Visualization
 
 -- | Set of nodes occupied by parts of the plane
-type Blocks = Set.Set Node
--- TODO types organization
+data Blocks = Blocks {
+    seats :: Set.Set Node,
+    walls :: Set.Set Node,
+    people :: Set.Set Node
+} deriving (Eq, Show)
 
--- | Set of nodes occupied by the seats themselves
-newtype Seats = Seats { getSeats :: Set.Set Node }
-
--- | Set of nodes occupied by the walls of the plane
-newtype Walls = Walls { getWalls :: Set.Set Node }
-
-instance Vis Walls where
-    visualize w = do
+instance Vis Blocks where
+    visualize b = do
         rgbColor 0.5 0.0 1.0
-        mapM_ visualize . Set.toList . getWalls $ w
-
-instance Vis Seats where
-    visualize s = do
+        mapM_ visualize . Set.toList . walls $ b
         rgbColor 0.5 0.5 0.0
-        mapM_ visualize . Set.toList . getSeats $ s
+        mapM_ visualize . Set.toList . seats $ b
+        -- don't visualize people - passengers will be visualized separately
 
 instance Vis Node where
     visualize (Node x y) = unitRect $ scale2d (x,y)
@@ -43,6 +35,10 @@ instance Vis Node where
 -- | Default starting node
 start :: Node
 start = Node 1 4
+
+-- | Is the node clear?
+clear :: Blocks -> Node -> Bool
+clear b n = all (Set.notMember n) [people b, seats b, walls b]
 
 -- | Convert a seat reference to a node
 seatRef :: Char -> Int -> Node
@@ -57,12 +53,8 @@ seatRef c n = Node (n * 2 - 1) y
 
 -- | The nodes occupied by parts of the plane
 carriage :: Blocks
-carriage = Set.unions [getSeats seats, getWalls walls]
-
--- | Walls of the plane
-walls :: Walls
-walls = Walls $ Set.fromList $ [Node x y | x <- [0..41], y <- [0,7]] ++ [Node x y | x <- [0,41], y <- [0..7]]
-
--- | Seats
-seats :: Seats
-seats = Seats $ Set.fromList [Node (2*x) y | x <- [1..20], y <- [1,2,3,5,6]]
+carriage = Blocks {
+    walls = Set.fromList $ [Node x y | x <- [0..41], y <- [0,7]] ++ [Node x y | x <- [0,41], y <- [0..7]],
+    seats = Set.fromList [Node (2*x) y | x <- [1..20], y <- [1,2,3,5,6]],
+    people = Set.empty
+}

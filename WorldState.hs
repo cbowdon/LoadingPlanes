@@ -63,17 +63,14 @@ findNext (Node x y) (Node x' y') = Node (inc x x') (inc y y')
             | k > k'    = k - 1
             | otherwise = k
 
-clear :: Blocks -> Node -> Bool
-clear = flip Set.notMember
-
 update :: Blocks -> Queue -> Passenger -> Node -> (Blocks, Queue)
 update obs ps p next =
     let p' = ps |> p { location = next }
-        o' = Set.insert next . Set.delete (location p) $ obs
+        o' = obs { people = Set.insert next . Set.delete (location p) $ people obs }
     in  (o', p')
 
 insert :: Blocks -> Queue -> Passenger -> (Blocks, Queue)
 insert obs ps p =
     let p' = ps |> p { onboard = True }
-        o' = Set.insert (location p) obs
+        o' = obs { people = Set.insert (location p) $ people obs }
     in (o', p')
