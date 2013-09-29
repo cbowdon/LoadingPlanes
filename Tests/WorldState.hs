@@ -49,6 +49,7 @@ passengers' :: Queue
 passengers' = f . viewl $ passengers
     where
         f (p :< ps) = ps |> p { onboard = True }
+        f _         = queueFromList []
 
 -- | Test cases for WorldState
 tests :: Test

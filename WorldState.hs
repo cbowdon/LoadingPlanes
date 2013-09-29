@@ -1,8 +1,6 @@
 -- | Updating the state of the world
 module WorldState
 ( PlaneState
-, Queue
-, queueFromList
 , step
 , nSteps
 ) where
@@ -10,20 +8,13 @@ module WorldState
 import Control.Monad
 import Control.Monad.State
 import qualified Data.Set as Set
-import Data.Sequence (Seq, ViewL(..), (|>), viewl, fromList)
+import Data.Sequence (ViewL(..), (|>), viewl)
 import Path
 import Passenger
 import Plane
 
--- | Passenger processing queue (i.e. whose turn to step)
-type Queue = Seq Passenger
-
 -- | Describes the state of the plane (passenger locations)
 type PlaneState a = StateT Queue Maybe a
-
--- | Convenient constructor function for queues
-queueFromList :: [Passenger] -> Queue
-queueFromList = fromList
 
 -- | Take 1 step (for 1 passenger)
 --
@@ -50,17 +41,10 @@ nSteps n s = iterate (>>=step) s !! n
 
 nextStep :: Blocks -> Passenger -> Maybe Node
 nextStep obs p =
-    let next = findNext (location p) (seat p)
+    let next = moveXThenY (location p) (seat p)
     in if clear obs next
     then Just next
     else Nothing
-
-findNext :: Node -> Node -> Node
-findNext (Node x y) (Node x' y')
-    | x < x'    = Node (x + 1) y
-    | y < y'    = Node x (y + 1)
-    | y > y'    = Node x (y - 1)
-    | otherwise = Node x y
 
 update :: Blocks -> Queue -> Passenger -> Node -> (Blocks, Queue)
 update obs ps p next =

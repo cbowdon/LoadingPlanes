@@ -29,9 +29,6 @@ instance Vis Blocks where
         mapM_ visualize . Set.toList . seats $ b
         -- don't visualize people - passengers will be visualized separately
 
-instance Vis Node where
-    visualize (Node x y) = unitRect $ scale2d (x,y)
-
 -- | Default starting node
 start :: Node
 start = Node 1 4

@@ -10,7 +10,6 @@ import Graphics.UI.GLUT
 import Test.HUnit (runTestTT)
 import qualified Tests.Path
 import qualified Tests.WorldState
-import Path
 import Passenger
 import Plane hiding (clear)
 import Visualization
@@ -33,7 +32,7 @@ main = do
     print "WorldState:"
     _' <- runTestTT Tests.WorldState.tests
     _ <- getArgsAndInitialize
-    _ <- createWindow "Hello, world"
+    _ <- createWindow "Loading Planes (space to step)"
     ps <- newIORef initialPlane
     keyboardMouseCallback $= Just (updatePlane ps)
     displayCallback $= display ps

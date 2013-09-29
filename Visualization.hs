@@ -19,9 +19,6 @@ import Graphics.Rendering.OpenGL
 -- | A visualizable (with OpenGL) type
 class Vis a where
     visualize :: a -> IO ()
-    -- TODO
-    -- rgb :: a -> Color3
-    -- shape :: a -> [Vertex2]
 
 -- | Set visualization color
 rgbColor :: GLfloat -> GLfloat -> GLfloat -> IO ()

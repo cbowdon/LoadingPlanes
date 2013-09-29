@@ -5,7 +5,10 @@ DIST=dist
 all: compile lint
 
 compile: $(SOURCES)
-	cabal install --haddock-executables --disable-documentation
+	cabal install \
+		--haddock-executables \
+		--disable-documentation \
+		--ghc-option=-Wall
 
 run: compile
 	$(EXE)

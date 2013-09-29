@@ -5,6 +5,7 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Test.HUnit hiding (Node, path, Path)
 import Path
+import Path.Dijkstra
 
 -- * Test constants
 -- | Origin node (0,0).
