@@ -17,7 +17,7 @@ import WorldState
 
 -- | Passengers, in order of boarding plane
 passengers :: Queue
-passengers = queueFromList [makePassenger a b | a <- ['A'..'E'], b <- [1..20]]
+passengers = queueFromList [makePassenger a b | a <- ['A'..'E'], b <- [1..2]]
 
 -- | Empty plane
 initialPlane :: PlaneState Blocks

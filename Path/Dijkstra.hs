@@ -1,5 +1,6 @@
 -- | Path-finding functionality using Dijkstra's algorithm.
 module Path.Dijkstra
+{-
 ( -- * Types
 Path
   -- * Functions
@@ -7,8 +8,9 @@ Path
 , makeGraph
 , adjacent
 , nodeClear
-) where
+) -} where
 
+import Data.Foldable (foldl')
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Path
@@ -33,21 +35,23 @@ minPath :: Set.Set Node     -- ^ Set of obstructed nodes
         -> Node             -- ^ Source node
         -> Node             -- ^ Destination node
         -> Maybe Path     -- ^ Minimum path if exists
-minPath obstructed src dest = rec (Just src) []
+minPath obstructed src dest = sequence $ nextNodes $ Just src
     where
         graph = makeGraph obstructed src dest
-        -- TODO isn't this a fold?
-        rec ms o = ms >>= \s ->
-            if s == dest
-            then Just $ reverse (s:o)
-            else rec (nextNode graph s) (s:o)
+        nextNodes = takeWhileInc p . iterate (>>= nextNode graph)
+        p (Just n) = n /= dest
+        p Nothing  = False
 
+takeWhileInc :: (a -> Bool) -> [a] -> [a]
+takeWhileInc _ [] = []
+takeWhileInc p (x:xs)   | p x       = x : takeWhileInc p xs
+                        | otherwise = [x]
 -- | Select the node with the lower weight from the graph.
 lowerWeight :: Graph -> Node -> Node -> Node
-lowerWeight graph b a =
-        let b' = graph Map.! b
-            a' = graph Map.! a
-        in  if b' <= a' then b else a
+lowerWeight graph a b =
+        let a' = graph Map.! a
+            b' = graph Map.! b
+        in  if a' <= b' then a else b
 
 -- | Calculate next node in graph to move to.
 nextNode :: Graph -> Node -> Maybe Node
@@ -56,7 +60,7 @@ nextNode graph node =
     in case possibles of
         []      -> Nothing
         [n]     -> Just n
-        (n:ns)  -> Just $ foldl (lowerWeight graph) n ns
+        (n:ns)  -> Just $ foldl' (lowerWeight graph) n ns
 
 -- | Predicate for whether a node is in the 10x10 world or not.
 inWorld :: Node -> Bool
@@ -87,15 +91,15 @@ makeGraph   :: Set.Set Node -- ^ Set of obstructed nodes
             -> Graph        -- ^ Weighted graph of nodes
 makeGraph obstructed src dest = rec [dest] (Map.singleton dest 0)
     where
-        rec [] m        = m
+        rec [] m = m
         rec (x:xs) m
                 | x == src  = m
-                | otherwise = rec (xs ++ adjs) (foldl addm m adjs)
+                | otherwise = rec (xs ++ adjs) (foldr addm m adjs)
             -- TODO ugly nested where, ugly guard
             -- can we achieve this with an iterator+interpreter instead?
             where
                 (adjs, w) = graphable obstructed m x
-                addm m' a = Map.insert a w m'
+                addm a = Map.insert a w
 
 -- | Get permissible adjacent nodes.
 graphable   :: Set.Set Node     -- ^ Obstructed nodes
