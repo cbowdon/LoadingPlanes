@@ -1,4 +1,4 @@
-SOURCES=*.hs Tests/*.hs
+SOURCES=*.hs Tests/*.hs Path/*.hs
 EXE=LoadingPlanes
 DIST=dist
 
