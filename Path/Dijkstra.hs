@@ -1,6 +1,5 @@
 -- | Path-finding functionality using Dijkstra's algorithm.
 module Path.Dijkstra
-{-
 ( -- * Types
 Path
   -- * Functions
@@ -8,7 +7,7 @@ Path
 , makeGraph
 , adjacent
 , nodeClear
-) -} where
+) where
 
 import Data.Foldable (foldl')
 import qualified Data.Set as Set
@@ -42,10 +41,12 @@ minPath obstructed src dest = sequence $ nextNodes $ Just src
         p (Just n) = n /= dest
         p Nothing  = False
 
+-- | Same as takeWhile, but also includes the first element for which predicate was true
 takeWhileInc :: (a -> Bool) -> [a] -> [a]
 takeWhileInc _ [] = []
 takeWhileInc p (x:xs)   | p x       = x : takeWhileInc p xs
                         | otherwise = [x]
+
 -- | Select the node with the lower weight from the graph.
 lowerWeight :: Graph -> Node -> Node -> Node
 lowerWeight graph a b =
