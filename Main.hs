@@ -17,7 +17,7 @@ import WorldState
 
 -- | Passengers, in order of boarding plane
 passengers :: Queue
-passengers = queueFromList [makePassenger a b | a <- ['A'..'E'], b <- [1..2]]
+passengers = queueFromList [makePassenger a b | a <- ['A'..'E'], b <- [1..20]]
 
 -- | Empty plane
 initialPlane :: PlaneState Blocks
@@ -33,25 +33,28 @@ main = do
     _' <- runTestTT Tests.WorldState.tests
     _ <- getArgsAndInitialize
     _ <- createWindow "Loading Planes (space to step)"
-    ps <- newIORef initialPlane
-    keyboardMouseCallback $= Just (updatePlane ps)
-    displayCallback $= display ps
+    ps <- newIORef initialPlane -- I know this defeats the point of the State monad. Blame OpenGL.
+    n <- newIORef 0
+    keyboardMouseCallback $= Just (updatePlane n ps)
+    displayCallback $= display n ps
     mainLoop
 
 -- | Callback to update plane state
-updatePlane :: IORef (PlaneState Blocks) -> KeyboardMouseCallback
-updatePlane ips (Char ' ') Down _ _ = do
-    ips $~! (>>=step)
+updatePlane :: IORef Int -> IORef (PlaneState Blocks) -> KeyboardMouseCallback
+updatePlane n ps (Char ' ') Down _ _ = do
+    n $~! (+1)
+    ps $~! (>>=step)
     postRedisplay Nothing
-updatePlane _ _ _ _ _ = return ()
+updatePlane _ _ _ _ _ _ = return ()
 
--- | Callback to displace plane state
-display :: IORef (PlaneState Blocks) -> IO ()
-display ips = do
+-- | Callback to display plane state
+display :: IORef Int -> IORef (PlaneState Blocks) -> IO ()
+display n ps = do
     clear [ColorBuffer]
     render carriage
-    ps <- get ips
-    case runStateT ps passengers of
-        Just (_, ppl)   -> renderMany ppl
+    ps' <- get ps
+    n' <- get n
+    case runStateT ps' passengers of
+        Just (_, ppl)   -> print n' >> renderMany ppl
         Nothing         -> print "Nothing!"
     flush

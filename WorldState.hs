@@ -31,7 +31,7 @@ step obs = StateT $ f . viewl
         f (p :< ps)
             | seated p = return $ remove obs ps p
             | not (onboard p) && clear obs (location p) = return $ insert obs ps p
-            | not (onboard p) = return (obs, ps |> p)
+            | not (onboard p) = f $ viewl (ps |> p)
             | otherwise = liftM (update obs ps p) (nextStep obs p)
         f _ = Nothing
 
